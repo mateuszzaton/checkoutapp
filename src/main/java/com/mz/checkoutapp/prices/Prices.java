@@ -11,9 +11,8 @@ public class Prices {
     private static ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 
     public static Map<String, HashMap<String,Object>> getAllPrices() throws Exception {
-        File f = new File(classloader.getResource("prices.json").toURI());
         Map<String, HashMap<String,Object>> result =
-                new ObjectMapper().readValue(f, Map.class);
+                new ObjectMapper().readValue(classloader.getResourceAsStream("prices.json"), Map.class);
         return result;
     }
     public static Map<String,Object> getOne(String name) throws Exception{
