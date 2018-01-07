@@ -1,65 +1,100 @@
 package com.mz.checkoutapp.logic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mz.checkoutapp.prices.Prices;
+import com.mz.checkoutapp.repository.ItemRepository;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Order {
-    private ObjectMapper mapper;
-    private HashMap<String,Object> orderList;
 
-    public Order() {}
-
-    public Order(String json) throws IOException {
-        super();
-        mapper  = new ObjectMapper();
-        orderList = mapper.readValue(json,HashMap.class);
+    private Map<String,String> orderList;
+    private ItemRepository repository;
+    private final double DISCOUNT = 0.9;
+    public Order(String json, ItemRepository repository) {
+        orderList = jsonToMap(json);
+        this.repository = repository;
     }
+
     public Map<String,String> getOrder() {
-        Map<String,String> order = new LinkedHashMap<String,String>();
+        return processOrder(orderList);
+    }
+
+    private Map<String,String> jsonToMap(String json) {
+        Map<String, String> order = new LinkedHashMap<>();
         try {
-            order = makeOrder(orderList);
-        }
-        catch(Exception e) {
+            ObjectMapper mapper = new ObjectMapper();
+            order = mapper.readValue(json, Map.class);
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return order;
     }
-    private Map<String, String> makeOrder(HashMap<String,Object> orderList) throws Exception {
-        Map<String, String> order = new LinkedHashMap<String, String>();
-        double totalPrice = 0;
-        for (HashMap.Entry<String,Object> entry : orderList.entrySet()) {
-            String name = entry.getKey();
-            int count = Integer.parseInt(entry.getValue().toString());
-            if(Prices.getOne(name)!=null) {
-                order.put(name, Double.toString(determinePrice(count, name)));
-                totalPrice = totalPrice + determinePrice(count, name);
-            } else {
-                order.put(name, "Product not found in catalog");
+
+    private Map<String, String> processOrder(Map<String,String> orderList) {
+        Map<String, String> order = new LinkedHashMap<>();
+        BigDecimal totalPrice = new BigDecimal(0);
+        if(orderList!=null) {
+            for (Map.Entry<String, String> entry : orderList.entrySet()) {
+                String name = entry.getKey();
+                String amount = entry.getValue();
+                try {
+                    BigDecimal price = determinePrice(amount, name);
+                    order.put(name, price + " for " + amount + " units." + printDiscount(amount,name));
+                    totalPrice = totalPrice.add(price);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    order.put(name, "Could not findByName product in the catalog.");
+                }
             }
         }
-        order.put("Total price", Double.toString(totalPrice));
+        order.put("Total price", totalPrice.toString());
         return order;
     }
-    private int getPrice(String name) throws Exception {
-        return Integer.parseInt(Prices.getOne(name).get("Price").toString());
+    private String printDiscount(String amount, String name) throws Exception {
+        String result = "";
+        int discountAmount = getDiscount(name);
+        if(Integer.parseInt(amount)>= discountAmount) {
+            result = (" "
+                    + (float)(1-DISCOUNT)*100
+                    + "% discount for buying "
+                    + discountAmount + " or more.");
+        }
+        return result;
     }
+    private BigDecimal getPrice(String name) throws Exception {
+        return new Prices().getOne(repository,name)
+                .iterator().next().getPrice();
+    }
+
     private int getDiscount(String name) throws Exception {
-        return Integer.parseInt(Prices.getOne(name).get("Discount").toString());
+        return new Prices().getOne(repository,name)
+                .iterator().next().getDiscountAmount();
     }
+
     private int getUnit(String name) throws Exception {
-        return Integer.parseInt(Prices.getOne(name).get("Unit").toString());
+        return new Prices().getOne(repository,name)
+                .iterator().next().getUnit();
     }
-    private double determinePrice(int orderedAmount, String name) throws Exception {
+
+    private BigDecimal determinePrice(String amount, String name) throws Exception {
+
+        BigDecimal price;
+        int orderedAmount = Integer.parseInt(amount);
         if(orderedAmount<getDiscount(name)) {
-            return orderedAmount * (double)(getPrice(name)/getUnit(name));
+            price = getPrice(name)
+                    .divide(new BigDecimal(getUnit(name)), BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal(orderedAmount));
         }
         else {
-            return orderedAmount * (double)(getPrice(name)/getUnit(name)) * 0.9;
+            price = getPrice(name)
+                    .divide(new BigDecimal(getUnit(name)), BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal(orderedAmount))
+                    .multiply(new BigDecimal(DISCOUNT));
         }
+        return price.setScale(2,RoundingMode.HALF_UP);
     }
 }
