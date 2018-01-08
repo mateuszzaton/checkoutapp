@@ -47,7 +47,7 @@ public class Order {
                     totalPrice = totalPrice.add(price);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    order.put(name, "Could not findByName product in the catalog.");
+                    order.put(name, "Could not find product in the catalog.");
                 }
             }
         }
