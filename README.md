@@ -51,4 +51,4 @@ Response
         "e": "Could not find product in the catalog.",
         "Total price": "924.00"
     }
-```json
+```
