@@ -1,13 +1,16 @@
 #### MARKET CHECK OUT APPLICAITON ###
 1. run mysql server
-2. mysql create database $dbname
-3. mysql use $dbname
-4. mysql create table item(id int auto_increment, name varchar(100), unit int, price bigint, discount_amount int, primary key(id));
+2. ```mysql create database $dbname```
+3. ```mysql use $dbname```
+4. ```mysql create table item(id int auto_increment, name varchar(100), unit int, price bigint, discount_amount int, primary key(id));```
 5. setup mysql @ application.properties file
+
 	e.g.
+	```
 		spring.datasource.url=jdbc:mysql://localhost:3306/$dbname
 		spring.datasource.username=root
 		spring.datasource.password=admin
+		```
 
 6. mvn clean install
 7. java -jar target\checkoutapp-0.1.0.jar
