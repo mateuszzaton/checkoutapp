@@ -10,7 +10,7 @@
 		spring.datasource.url=jdbc:mysql://localhost:3306/$dbname
 		spring.datasource.username=root
 		spring.datasource.password=admin
-		```
+	```
 
 6. mvn clean install
 7. java -jar target\checkoutapp-0.1.0.jar
